@@ -1,6 +1,7 @@
 # Academia API
 
 API para gerenciamento de alunos e treinos de uma academia.
+Grupo: Alexandre Malta, Christiano Santos, Rafael Santana, João dos Anjos e Luiz Henrique.
 
 ## Estrutura das Tabelas
 
