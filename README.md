@@ -37,7 +37,7 @@ Retorna uma mensagem informando que a API está funcionando.
 
 **Resposta de sucesso — HTTP 200:**
 
-```json
+json
 {
   "status": "API da Academia funcionando!"
 }
