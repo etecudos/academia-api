@@ -40,22 +40,26 @@ Retorna uma mensagem informando que a API está funcionando.
 ```json
 {
   "status": "API da Academia funcionando!"
-}
+}```
 
-## Atualização - Entrega 03 (Arquitetura em Camadas)
+Atualização - Entrega 03 (Arquitetura em Camadas)
+Nesta etapa, a API foi refatorada para seguir o padrão de Arquitetura em Camadas e agora possui persistência de dados utilizando banco de dados relacional.
 
-Nesta etapa, a API foi refatorada para seguir o padrão de **Arquitetura em Camadas** e agora possui persistência de dados utilizando banco de dados relacional.
+Banco de Dados: SQLite
 
-* **Banco de Dados:** SQLite
-* **ORM:** SQLAlchemy
-* **Validação de Dados:** Pydantic (Schemas separados para Requisição e Resposta)
-* **Controladores:** FastAPI (APIRouter)
+ORM: SQLAlchemy
 
-### Rotas Implementadas (CRUD de Alunos)
+Validação de Dados: Pydantic (Schemas separados para Requisição e Resposta)
 
+Controladores: FastAPI (APIRouter)
+
+Rotas Implementadas (CRUD de Alunos)
 As seguintes rotas interagem diretamente com o banco de dados SQLite:
 
-* **`GET /alunos/`**: Lista todos os alunos cadastrados. Permite busca opcional pelo nome via *Query Parameter*.
-* **`GET /alunos/{id}`**: Retorna os detalhes de um aluno específico pelo seu ID. Retorna erro 404 se não existir.
-* **`POST /alunos/`**: Cadastra um novo aluno no banco de dados. Retorna status `201 Created` em caso de sucesso.
-* **`DELETE /alunos/{id}`**: Remove um aluno do banco de dados pelo seu ID. Retorna erro 404 caso o aluno não seja encontrado.
+GET /alunos/: Lista todos os alunos cadastrados. Permite busca opcional pelo nome via Query Parameter.
+
+GET /alunos/{id}: Retorna os detalhes de um aluno específico pelo seu ID. Retorna erro 404 se não existir.
+
+POST /alunos/: Cadastra um novo aluno no banco de dados. Retorna status 201 Created em caso de sucesso.
+
+DELETE /alunos/{id}: Remove um aluno do banco de dados pelo seu ID. Retorna erro 404 caso o aluno não seja encontrado.
