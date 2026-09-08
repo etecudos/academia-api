@@ -40,7 +40,7 @@ Retorna uma mensagem informando que a API está funcionando.
 ```json
 {
   "status": "API da Academia funcionando!"
-}```
+}
 
 Atualização - Entrega 03 (Arquitetura em Camadas)
 Nesta etapa, a API foi refatorada para seguir o padrão de Arquitetura em Camadas e agora possui persistência de dados utilizando banco de dados relacional.
