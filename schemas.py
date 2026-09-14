@@ -13,7 +13,11 @@ class PessoaBase(BaseModel):
     matricula: str = Field(min_length=1, max_length=30)
     nome: str = Field(min_length=2, max_length=100)
     email: str = Field(min_length=5, max_length=150)
-    telefone: str = Field(min_length=8, max_length=20)
+    telefone: str = Field(
+        min_length=8,
+        max_length=20,
+        pattern=r"^\d+$"
+    )
     tipo_pessoa: TipoPessoa
 
 
@@ -22,10 +26,27 @@ class PessoaCreateSchema(PessoaBase):
 
 
 class PessoaUpdateSchema(BaseModel):
-    matricula: str | None = Field(default=None, min_length=1, max_length=30)
-    nome: str | None = Field(default=None, min_length=2, max_length=100)
-    email: str | None = Field(default=None, min_length=5, max_length=150)
-    telefone: str | None = Field(default=None, min_length=8, max_length=20)
+    matricula: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=30
+    )
+    nome: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=100
+    )
+    email: str | None = Field(
+        default=None,
+        min_length=5,
+        max_length=150
+    )
+    telefone: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=20,
+        pattern=r"^\d+$"
+    )
     tipo_pessoa: TipoPessoa | None = None
 
 
@@ -46,13 +67,25 @@ class PessoaResumoSchema(BaseModel):
 
 class MatriculaAlunoCreateSchema(BaseModel):
     aluno_id: int = Field(gt=0)
-    matricula_personal: str = Field(min_length=1, max_length=30)
-    usuario_inclusao: str = Field(min_length=2, max_length=100)
+    matricula_personal: str = Field(
+        min_length=1,
+        max_length=30
+    )
+    usuario_inclusao: str = Field(
+        min_length=2,
+        max_length=100
+    )
 
 
 class MatriculaAlunoUpdateSchema(BaseModel):
-    matricula_personal: str = Field(min_length=1, max_length=30)
-    usuario_alteracao: str = Field(min_length=2, max_length=100)
+    matricula_personal: str = Field(
+        min_length=1,
+        max_length=30
+    )
+    usuario_alteracao: str = Field(
+        min_length=2,
+        max_length=100
+    )
 
 
 class MatriculaAlunoResponseSchema(BaseModel):
