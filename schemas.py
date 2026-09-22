@@ -1,24 +1,21 @@
 from datetime import datetime
-from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class TipoPessoa(str, Enum):
-    ALUNO = "ALUNO"
-    PERSONAL = "PERSONAL"
+class TipoPessoaResponseSchema(BaseModel):
+    id: int
+    descricao: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PessoaBase(BaseModel):
     matricula: str = Field(min_length=1, max_length=30)
     nome: str = Field(min_length=2, max_length=100)
     email: str = Field(min_length=5, max_length=150)
-    telefone: str = Field(
-        min_length=8,
-        max_length=20,
-        pattern=r"^\d+$"
-    )
-    tipo_pessoa: TipoPessoa
+    telefone: str = Field(min_length=11, max_length=11, pattern=r"^\d{11}$")
+    tipo_pessoa_id: int = Field(ge=1, le=2)
 
 
 class PessoaCreateSchema(PessoaBase):
@@ -26,66 +23,36 @@ class PessoaCreateSchema(PessoaBase):
 
 
 class PessoaUpdateSchema(BaseModel):
-    matricula: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=30
-    )
-    nome: str | None = Field(
-        default=None,
-        min_length=2,
-        max_length=100
-    )
-    email: str | None = Field(
-        default=None,
-        min_length=5,
-        max_length=150
-    )
-    telefone: str | None = Field(
-        default=None,
-        min_length=8,
-        max_length=20,
-        pattern=r"^\d+$"
-    )
-    tipo_pessoa: TipoPessoa | None = None
+    nome: str | None = Field(default=None, min_length=2, max_length=100)
+    email: str | None = Field(default=None, min_length=5, max_length=150)
+    telefone: str | None = Field(default=None, min_length=11, max_length=11, pattern=r"^\d{11}$")
+    tipo_pessoa_id: int | None = Field(default=None, ge=1, le=2)
 
 
 class PessoaResponseSchema(PessoaBase):
-    id: int
+    data_criacao: datetime
+    tipo: TipoPessoaResponseSchema
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class PessoaResumoSchema(BaseModel):
-    id: int
     matricula: str
     nome: str
-    tipo_pessoa: TipoPessoa
+    tipo_pessoa_id: int
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class MatriculaAlunoCreateSchema(BaseModel):
-    aluno_id: int = Field(gt=0)
-    matricula_personal: str = Field(
-        min_length=1,
-        max_length=30
-    )
-    usuario_inclusao: str = Field(
-        min_length=2,
-        max_length=100
-    )
+    aluno_matricula: str = Field(min_length=1, max_length=30)
+    personal_matricula: str = Field(min_length=1, max_length=30)
+    usuario_inclusao: str = Field(min_length=2, max_length=100)
 
 
 class MatriculaAlunoUpdateSchema(BaseModel):
-    matricula_personal: str = Field(
-        min_length=1,
-        max_length=30
-    )
-    usuario_alteracao: str = Field(
-        min_length=2,
-        max_length=100
-    )
+    personal_matricula: str = Field(min_length=1, max_length=30)
+    usuario_alteracao: str = Field(min_length=2, max_length=100)
 
 
 class MatriculaAlunoResponseSchema(BaseModel):
@@ -96,5 +63,54 @@ class MatriculaAlunoResponseSchema(BaseModel):
     data_inclusao: datetime
     usuario_alteracao: str | None
     data_alteracao: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TreinoBaseSchema(BaseModel):
+    nome: str = Field(min_length=2, max_length=100)
+    descricao: str | None = Field(default=None, max_length=1000)
+    objetivo: str | None = Field(default=None, max_length=150)
+    nivel: str | None = Field(default=None, max_length=30)
+
+
+class TreinoCreateSchema(TreinoBaseSchema):
+    pass
+
+
+class TreinoUpdateSchema(BaseModel):
+    nome: str | None = Field(default=None, min_length=2, max_length=100)
+    descricao: str | None = Field(default=None, max_length=1000)
+    objetivo: str | None = Field(default=None, max_length=150)
+    nivel: str | None = Field(default=None, max_length=30)
+
+
+class TreinoResponseSchema(TreinoBaseSchema):
+    id: int
+    data_criacao: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FichaTreinoCreateSchema(BaseModel):
+    aluno_matricula: str = Field(min_length=1, max_length=30)
+    personal_matricula: str = Field(min_length=1, max_length=30)
+    treino_id: int = Field(gt=0)
+    observacoes: str | None = Field(default=None, max_length=1500)
+
+
+class FichaTreinoUpdateSchema(BaseModel):
+    personal_matricula: str | None = Field(default=None, min_length=1, max_length=30)
+    treino_id: int | None = Field(default=None, gt=0)
+    observacoes: str | None = Field(default=None, max_length=1500)
+
+
+class FichaTreinoResponseSchema(BaseModel):
+    id: int
+    aluno: PessoaResumoSchema
+    personal: PessoaResumoSchema
+    treino: TreinoResponseSchema
+    observacoes: str | None
+    data_criacao: datetime
 
     model_config = ConfigDict(from_attributes=True)
