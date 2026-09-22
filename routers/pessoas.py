@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import models
 import schemas
@@ -12,8 +12,13 @@ from database import get_db
 router = APIRouter(prefix="/pessoas", tags=["Pessoas"])
 
 
-def _buscar_pessoa_ou_404(pessoa_id: int, db: Session) -> models.Pessoa:
-    pessoa = db.query(models.Pessoa).filter(models.Pessoa.id == pessoa_id).first()
+def _buscar_pessoa_ou_404(matricula: str, db: Session) -> models.Pessoa:
+    pessoa = (
+        db.query(models.Pessoa)
+        .options(joinedload(models.Pessoa.tipo))
+        .filter(models.Pessoa.matricula == matricula)
+        .first()
+    )
     if not pessoa:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -33,23 +38,43 @@ def _salvar_ou_409(db: Session, mensagem: str) -> None:
         )
 
 
+def _validar_tipo_pessoa(tipo_pessoa_id: int, db: Session) -> None:
+    tipo = db.query(models.TipoPessoa).filter(models.TipoPessoa.id == tipo_pessoa_id).first()
+    if not tipo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de pessoa inválido. Use 1 para ALUNO ou 2 para PERSONAL.",
+        )
+
+
 @router.get("/", response_model=List[schemas.PessoaResponseSchema])
 def listar_pessoas(
+    matricula: str | None = None,
     nome: str | None = None,
-    tipo_pessoa: schemas.TipoPessoa | None = None,
+    email: str | None = None,
+    telefone: str | None = None,
+    tipo_pessoa_id: int | None = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Pessoa)
+    query = db.query(models.Pessoa).options(joinedload(models.Pessoa.tipo))
+
+    if matricula:
+        query = query.filter(models.Pessoa.matricula.ilike(f"%{matricula}%"))
     if nome:
         query = query.filter(models.Pessoa.nome.ilike(f"%{nome}%"))
-    if tipo_pessoa:
-        query = query.filter(models.Pessoa.tipo_pessoa == tipo_pessoa.value)
-    return query.order_by(models.Pessoa.id).all()
+    if email:
+        query = query.filter(models.Pessoa.email.ilike(f"%{email}%"))
+    if telefone:
+        query = query.filter(models.Pessoa.telefone.ilike(f"%{telefone}%"))
+    if tipo_pessoa_id:
+        query = query.filter(models.Pessoa.tipo_pessoa_id == tipo_pessoa_id)
+
+    return query.order_by(models.Pessoa.nome).all()
 
 
-@router.get("/{pessoa_id}", response_model=schemas.PessoaResponseSchema)
-def buscar_pessoa(pessoa_id: int, db: Session = Depends(get_db)):
-    return _buscar_pessoa_ou_404(pessoa_id, db)
+@router.get("/{matricula}", response_model=schemas.PessoaResponseSchema)
+def buscar_pessoa(matricula: str, db: Session = Depends(get_db)):
+    return _buscar_pessoa_ou_404(matricula, db)
 
 
 @router.post(
@@ -61,46 +86,56 @@ def cadastrar_pessoa(
     pessoa: schemas.PessoaCreateSchema,
     db: Session = Depends(get_db),
 ):
-    nova_pessoa = models.Pessoa(**pessoa.model_dump(mode="json"))
+    _validar_tipo_pessoa(pessoa.tipo_pessoa_id, db)
+    nova_pessoa = models.Pessoa(**pessoa.model_dump())
     db.add(nova_pessoa)
     _salvar_ou_409(db, "Matrícula ou e-mail já cadastrado.")
-    db.refresh(nova_pessoa)
-    return nova_pessoa
+    return _buscar_pessoa_ou_404(nova_pessoa.matricula, db)
 
 
-@router.put("/{pessoa_id}", response_model=schemas.PessoaResponseSchema)
+@router.put("/{matricula}", response_model=schemas.PessoaResponseSchema)
 def atualizar_pessoa(
-    pessoa_id: int,
+    matricula: str,
     dados: schemas.PessoaUpdateSchema,
     db: Session = Depends(get_db),
 ):
-    pessoa = _buscar_pessoa_ou_404(pessoa_id, db)
-    alteracoes = dados.model_dump(exclude_unset=True, mode="json")
+    pessoa = _buscar_pessoa_ou_404(matricula, db)
+    alteracoes = dados.model_dump(exclude_unset=True)
+
+    if "tipo_pessoa_id" in alteracoes:
+        _validar_tipo_pessoa(alteracoes["tipo_pessoa_id"], db)
 
     for campo, valor in alteracoes.items():
         setattr(pessoa, campo, valor)
 
-    _salvar_ou_409(db, "Matrícula ou e-mail já cadastrado.")
-    db.refresh(pessoa)
-    return pessoa
+    _salvar_ou_409(db, "E-mail já cadastrado.")
+    return _buscar_pessoa_ou_404(matricula, db)
 
 
-@router.delete("/{pessoa_id}")
-def excluir_pessoa(pessoa_id: int, db: Session = Depends(get_db)):
-    pessoa = _buscar_pessoa_ou_404(pessoa_id, db)
+@router.delete("/{matricula}")
+def excluir_pessoa(matricula: str, db: Session = Depends(get_db)):
+    pessoa = _buscar_pessoa_ou_404(matricula, db)
 
-    possui_vinculo = (
+    possui_matricula = (
         db.query(models.MatriculaAluno)
         .filter(
-            (models.MatriculaAluno.aluno_id == pessoa_id)
-            | (models.MatriculaAluno.personal_id == pessoa_id)
+            (models.MatriculaAluno.aluno_matricula == matricula)
+            | (models.MatriculaAluno.personal_matricula == matricula)
         )
         .first()
     )
-    if possui_vinculo:
+    possui_ficha = (
+        db.query(models.FichaTreino)
+        .filter(
+            (models.FichaTreino.aluno_matricula == matricula)
+            | (models.FichaTreino.personal_matricula == matricula)
+        )
+        .first()
+    )
+    if possui_matricula or possui_ficha:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A pessoa possui uma matrícula vinculada e não pode ser removida.",
+            detail="A pessoa possui vínculos cadastrados e não pode ser removida.",
         )
 
     db.delete(pessoa)

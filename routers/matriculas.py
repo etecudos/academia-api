@@ -11,10 +11,7 @@ from database import get_db
 router = APIRouter(prefix="/matriculas", tags=["Matrículas de alunos"])
 
 
-def _buscar_matricula_ou_404(
-    matricula_id: int,
-    db: Session,
-) -> models.MatriculaAluno:
+def _buscar_matricula_ou_404(matricula_id: int, db: Session) -> models.MatriculaAluno:
     matricula = (
         db.query(models.MatriculaAluno)
         .options(
@@ -32,24 +29,26 @@ def _buscar_matricula_ou_404(
     return matricula
 
 
-def _buscar_personal_por_matricula(
-    matricula_personal: str,
+def _buscar_pessoa_por_matricula_e_tipo(
+    matricula: str,
+    tipo_pessoa_id: int,
+    descricao: str,
     db: Session,
 ) -> models.Pessoa:
-    personal = (
+    pessoa = (
         db.query(models.Pessoa)
         .filter(
-            models.Pessoa.matricula == matricula_personal,
-            models.Pessoa.tipo_pessoa == models.TipoPessoa.PERSONAL,
+            models.Pessoa.matricula == matricula,
+            models.Pessoa.tipo_pessoa_id == tipo_pessoa_id,
         )
         .first()
     )
-    if not personal:
+    if not pessoa:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Personal não encontrado com a matrícula informada.",
+            detail=f"{descricao} não encontrado com a matrícula informada.",
         )
-    return personal
+    return pessoa
 
 
 @router.get("/", response_model=List[schemas.MatriculaAlunoResponseSchema])
@@ -65,10 +64,7 @@ def listar_matriculas(db: Session = Depends(get_db)):
     )
 
 
-@router.get(
-    "/{matricula_id}",
-    response_model=schemas.MatriculaAlunoResponseSchema,
-)
+@router.get("/{matricula_id}", response_model=schemas.MatriculaAlunoResponseSchema)
 def buscar_matricula(matricula_id: int, db: Session = Depends(get_db)):
     return _buscar_matricula_ou_404(matricula_id, db)
 
@@ -82,58 +78,38 @@ def criar_matricula(
     dados: schemas.MatriculaAlunoCreateSchema,
     db: Session = Depends(get_db),
 ):
-    aluno = db.query(models.Pessoa).filter(models.Pessoa.id == dados.aluno_id).first()
-    if not aluno:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Aluno não encontrado.",
-        )
-    if aluno.tipo_pessoa != models.TipoPessoa.ALUNO:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="O ID informado não pertence a uma pessoa do tipo ALUNO.",
-        )
+    _buscar_pessoa_por_matricula_e_tipo(dados.aluno_matricula, 1, "Aluno", db)
+    _buscar_pessoa_por_matricula_e_tipo(dados.personal_matricula, 2, "Personal", db)
 
     matricula_existente = (
         db.query(models.MatriculaAluno)
-        .filter(models.MatriculaAluno.aluno_id == dados.aluno_id)
+        .filter(models.MatriculaAluno.aluno_matricula == dados.aluno_matricula)
         .first()
     )
     if matricula_existente:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Este aluno já possui matrícula e personal vinculados.",
+            detail="Este aluno já possui um personal vinculado.",
         )
 
-    personal = _buscar_personal_por_matricula(dados.matricula_personal, db)
-    nova_matricula = models.MatriculaAluno(
-        aluno_id=dados.aluno_id,
-        personal_id=personal.id,
-        usuario_inclusao=dados.usuario_inclusao,
-    )
+    nova_matricula = models.MatriculaAluno(**dados.model_dump())
     db.add(nova_matricula)
     db.commit()
     db.refresh(nova_matricula)
     return _buscar_matricula_ou_404(nova_matricula.id, db)
 
 
-@router.put(
-    "/{matricula_id}",
-    response_model=schemas.MatriculaAlunoResponseSchema,
-)
+@router.put("/{matricula_id}", response_model=schemas.MatriculaAlunoResponseSchema)
 def alterar_matricula(
     matricula_id: int,
     dados: schemas.MatriculaAlunoUpdateSchema,
     db: Session = Depends(get_db),
 ):
     matricula = _buscar_matricula_ou_404(matricula_id, db)
-    personal = _buscar_personal_por_matricula(dados.matricula_personal, db)
+    _buscar_pessoa_por_matricula_e_tipo(dados.personal_matricula, 2, "Personal", db)
 
-    matricula.personal_id = personal.id
+    matricula.personal_matricula = dados.personal_matricula
     matricula.usuario_alteracao = dados.usuario_alteracao
-
-    # O onupdate do modelo envia CURRENT_TIMESTAMP para o próprio banco.
-    # Assim, a data nunca é recebida no corpo da requisição nem criada à mão.
     db.commit()
     db.refresh(matricula)
     return _buscar_matricula_ou_404(matricula.id, db)
