@@ -6,15 +6,16 @@ Grupo: Alexandre Malta, Christiano Santos, Rafael Santana, João dos Anjos e Lui
 
 ## Alterações desta versão
 
-- A matrícula passou a ser a chave primária da tabela `pessoas`; o campo `id` foi removido dessa tabela.
+- A matrícula é a chave primária da tabela `pessoas` e agora é um número inteiro gerado automaticamente pelo banco.
+- O campo `id` separado foi removido da tabela `pessoas`, evitando dois campos com a mesma função.
+- No `POST /pessoas/`, a matrícula não é informada pelo usuário; ela é criada automaticamente.
 - Foi criada a tabela `tipos_pessoa` com os valores fixos `1 - ALUNO` e `2 - PERSONAL`.
-- O cadastro de pessoa agora recebe `tipo_pessoa_id` e se relaciona com `tipos_pessoa`.
+- O cadastro de pessoa recebe `tipo_pessoa_id` e se relaciona com `tipos_pessoa`.
 - O telefone aceita exatamente 11 dígitos numéricos.
 - O `GET /pessoas/` permite busca por matrícula, nome, e-mail, telefone e tipo de pessoa.
 - O retorno de pessoas inclui `data_criacao`.
-- Foi criada a tabela `treinos` como catálogo de treinos, sem vínculo direto com aluno.
-- Foi criada a tabela `fichas_treino`, relacionando aluno, personal e treino.
-- O nome do projeto foi definido como **Academia FitTec** e a descrição foi atualizada.
+- A tabela `treinos` funciona como catálogo de treinos, sem vínculo direto com aluno.
+- A tabela `fichas_treino` relaciona aluno, personal e treino.
 
 ## Estrutura das tabelas
 
@@ -29,7 +30,7 @@ Grupo: Alexandre Malta, Christiano Santos, Rafael Santana, João dos Anjos e Lui
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| matricula | VARCHAR(30) | Chave primária |
+| matricula | INTEGER | Chave primária com autoincremento |
 | nome | VARCHAR(100) | Nome completo |
 | email | VARCHAR(150) | E-mail único |
 | telefone | VARCHAR(11) | Exatamente 11 números |
@@ -41,8 +42,8 @@ Grupo: Alexandre Malta, Christiano Santos, Rafael Santana, João dos Anjos e Lui
 | Campo | Tipo | Descrição |
 |---|---|---|
 | id | INTEGER | Chave primária |
-| aluno_matricula | VARCHAR(30) | FK para a matrícula de uma pessoa do tipo aluno |
-| personal_matricula | VARCHAR(30) | FK para a matrícula de uma pessoa do tipo personal |
+| aluno_matricula | INTEGER | FK para a matrícula de uma pessoa do tipo aluno |
+| personal_matricula | INTEGER | FK para a matrícula de uma pessoa do tipo personal |
 | usuario_inclusao | VARCHAR(100) | Usuário que criou o vínculo |
 | data_inclusao | DATETIME | Data automática de inclusão |
 | usuario_alteracao | VARCHAR(100) | Usuário da última alteração |
@@ -64,8 +65,8 @@ Grupo: Alexandre Malta, Christiano Santos, Rafael Santana, João dos Anjos e Lui
 | Campo | Tipo | Descrição |
 |---|---|---|
 | id | INTEGER | Chave primária |
-| aluno_matricula | VARCHAR(30) | FK para o aluno |
-| personal_matricula | VARCHAR(30) | FK para o personal |
+| aluno_matricula | INTEGER | FK para o aluno |
+| personal_matricula | INTEGER | FK para o personal |
 | treino_id | INTEGER | FK para o treino |
 | observacoes | TEXT | Observações que permitem personalizar a ficha ao perfil do aluno |
 | data_criacao | DATETIME | Data de criação automática |
@@ -85,31 +86,16 @@ Depois abra:
 - Documentação Swagger: <http://127.0.0.1:8000/docs>
 - API: <http://127.0.0.1:8000>
 
-> Como a estrutura do banco mudou, se existir um `academia.db` de uma versão anterior, apague esse arquivo uma vez antes de iniciar esta versão. O SQLite recriará as tabelas automaticamente.
+> Como o tipo da matrícula mudou de texto para inteiro com autoincremento, apague qualquer `academia.db` de uma versão anterior antes de iniciar esta versão. O SQLite recriará as tabelas automaticamente.
 
 ## Exemplos para teste
 
-### 1. Criar um personal
+### 1. Criar um aluno
 
 `POST /pessoas/`
 
 ```json
 {
-  "matricula": "P001",
-  "nome": "Carlos Silva",
-  "email": "carlos@email.com",
-  "telefone": "11988887777",
-  "tipo_pessoa_id": 2
-}
-```
-
-### 2. Criar um aluno
-
-`POST /pessoas/`
-
-```json
-{
-  "matricula": "A001",
   "nome": "João dos Anjos",
   "email": "joao@email.com",
   "telefone": "11999998888",
@@ -117,14 +103,41 @@ Depois abra:
 }
 ```
 
+A resposta incluirá uma matrícula gerada automaticamente, por exemplo:
+
+```json
+{
+  "nome": "João dos Anjos",
+  "email": "joao@email.com",
+  "telefone": "11999998888",
+  "tipo_pessoa_id": 1,
+  "matricula": 1
+}
+```
+
+### 2. Criar um personal
+
+`POST /pessoas/`
+
+```json
+{
+  "nome": "Carlos Silva",
+  "email": "carlos@email.com",
+  "telefone": "11988887777",
+  "tipo_pessoa_id": 2
+}
+```
+
+Se for a segunda pessoa cadastrada, a matrícula retornada será `2`.
+
 ### 3. Vincular aluno e personal
 
 `POST /matriculas/`
 
 ```json
 {
-  "aluno_matricula": "A001",
-  "personal_matricula": "P001",
+  "aluno_matricula": 1,
+  "personal_matricula": 2,
   "usuario_inclusao": "admin"
 }
 ```
@@ -150,8 +163,8 @@ Use no campo `treino_id` o ID retornado ao criar o treino.
 
 ```json
 {
-  "aluno_matricula": "A001",
-  "personal_matricula": "P001",
+  "aluno_matricula": 1,
+  "personal_matricula": 2,
   "treino_id": 1,
   "observacoes": "Ajustar carga e repetições de acordo com a evolução do aluno."
 }
@@ -162,8 +175,8 @@ Use no campo `treino_id` o ID retornado ao criar o treino.
 | Método | Rota | Função |
 |---|---|---|
 | GET | `/pessoas/` | Lista pessoas e filtra por qualquer campo de cadastro |
-| GET | `/pessoas/{matricula}` | Busca pessoa pela matrícula |
-| POST | `/pessoas/` | Cadastra aluno ou personal |
+| GET | `/pessoas/{matricula}` | Busca pessoa pela matrícula numérica |
+| POST | `/pessoas/` | Cadastra aluno ou personal e gera a matrícula automaticamente |
 | PUT | `/pessoas/{matricula}` | Atualiza uma pessoa |
 | DELETE | `/pessoas/{matricula}` | Exclui uma pessoa sem vínculos |
 | GET | `/tipos-pessoa/` | Lista `1 - ALUNO` e `2 - PERSONAL` |
