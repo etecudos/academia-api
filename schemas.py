@@ -11,7 +11,6 @@ class TipoPessoaResponseSchema(BaseModel):
 
 
 class PessoaBase(BaseModel):
-    matricula: str = Field(min_length=1, max_length=30)
     nome: str = Field(min_length=2, max_length=100)
     email: str = Field(min_length=5, max_length=150)
     telefone: str = Field(min_length=11, max_length=11, pattern=r"^\d{11}$")
@@ -30,6 +29,7 @@ class PessoaUpdateSchema(BaseModel):
 
 
 class PessoaResponseSchema(PessoaBase):
+    matricula: int
     data_criacao: datetime
     tipo: TipoPessoaResponseSchema
 
@@ -37,7 +37,7 @@ class PessoaResponseSchema(PessoaBase):
 
 
 class PessoaResumoSchema(BaseModel):
-    matricula: str
+    matricula: int
     nome: str
     tipo_pessoa_id: int
 
@@ -45,13 +45,13 @@ class PessoaResumoSchema(BaseModel):
 
 
 class MatriculaAlunoCreateSchema(BaseModel):
-    aluno_matricula: str = Field(min_length=1, max_length=30)
-    personal_matricula: str = Field(min_length=1, max_length=30)
+    aluno_matricula: int = Field(gt=0)
+    personal_matricula: int = Field(gt=0)
     usuario_inclusao: str = Field(min_length=2, max_length=100)
 
 
 class MatriculaAlunoUpdateSchema(BaseModel):
-    personal_matricula: str = Field(min_length=1, max_length=30)
+    personal_matricula: int = Field(gt=0)
     usuario_alteracao: str = Field(min_length=2, max_length=100)
 
 
@@ -93,14 +93,14 @@ class TreinoResponseSchema(TreinoBaseSchema):
 
 
 class FichaTreinoCreateSchema(BaseModel):
-    aluno_matricula: str = Field(min_length=1, max_length=30)
-    personal_matricula: str = Field(min_length=1, max_length=30)
+    aluno_matricula: int = Field(gt=0)
+    personal_matricula: int = Field(gt=0)
     treino_id: int = Field(gt=0)
     observacoes: str | None = Field(default=None, max_length=1500)
 
 
 class FichaTreinoUpdateSchema(BaseModel):
-    personal_matricula: str | None = Field(default=None, min_length=1, max_length=30)
+    personal_matricula: int | None = Field(default=None, gt=0)
     treino_id: int | None = Field(default=None, gt=0)
     observacoes: str | None = Field(default=None, max_length=1500)
 

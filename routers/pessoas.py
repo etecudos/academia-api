@@ -12,7 +12,7 @@ from database import get_db
 router = APIRouter(prefix="/pessoas", tags=["Pessoas"])
 
 
-def _buscar_pessoa_ou_404(matricula: str, db: Session) -> models.Pessoa:
+def _buscar_pessoa_ou_404(matricula: int, db: Session) -> models.Pessoa:
     pessoa = (
         db.query(models.Pessoa)
         .options(joinedload(models.Pessoa.tipo))
@@ -49,7 +49,7 @@ def _validar_tipo_pessoa(tipo_pessoa_id: int, db: Session) -> None:
 
 @router.get("/", response_model=List[schemas.PessoaResponseSchema])
 def listar_pessoas(
-    matricula: str | None = None,
+    matricula: int | None = None,
     nome: str | None = None,
     email: str | None = None,
     telefone: str | None = None,
@@ -59,7 +59,7 @@ def listar_pessoas(
     query = db.query(models.Pessoa).options(joinedload(models.Pessoa.tipo))
 
     if matricula:
-        query = query.filter(models.Pessoa.matricula.ilike(f"%{matricula}%"))
+        query = query.filter(models.Pessoa.matricula == matricula)
     if nome:
         query = query.filter(models.Pessoa.nome.ilike(f"%{nome}%"))
     if email:
@@ -73,7 +73,7 @@ def listar_pessoas(
 
 
 @router.get("/{matricula}", response_model=schemas.PessoaResponseSchema)
-def buscar_pessoa(matricula: str, db: Session = Depends(get_db)):
+def buscar_pessoa(matricula: int, db: Session = Depends(get_db)):
     return _buscar_pessoa_ou_404(matricula, db)
 
 
@@ -89,13 +89,13 @@ def cadastrar_pessoa(
     _validar_tipo_pessoa(pessoa.tipo_pessoa_id, db)
     nova_pessoa = models.Pessoa(**pessoa.model_dump())
     db.add(nova_pessoa)
-    _salvar_ou_409(db, "Matrícula ou e-mail já cadastrado.")
+    _salvar_ou_409(db, "E-mail já cadastrado.")
     return _buscar_pessoa_ou_404(nova_pessoa.matricula, db)
 
 
 @router.put("/{matricula}", response_model=schemas.PessoaResponseSchema)
 def atualizar_pessoa(
-    matricula: str,
+    matricula: int,
     dados: schemas.PessoaUpdateSchema,
     db: Session = Depends(get_db),
 ):
@@ -113,7 +113,7 @@ def atualizar_pessoa(
 
 
 @router.delete("/{matricula}")
-def excluir_pessoa(matricula: str, db: Session = Depends(get_db)):
+def excluir_pessoa(matricula: int, db: Session = Depends(get_db)):
     pessoa = _buscar_pessoa_ou_404(matricula, db)
 
     possui_matricula = (

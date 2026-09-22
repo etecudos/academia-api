@@ -30,7 +30,7 @@ def _buscar_matricula_ou_404(matricula_id: int, db: Session) -> models.Matricula
 
 
 def _buscar_pessoa_por_matricula_e_tipo(
-    matricula: str,
+    matricula: int,
     tipo_pessoa_id: int,
     descricao: str,
     db: Session,

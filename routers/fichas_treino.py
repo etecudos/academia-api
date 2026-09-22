@@ -28,7 +28,7 @@ def _buscar_ficha_ou_404(ficha_id: int, db: Session) -> models.FichaTreino:
     return ficha
 
 
-def _validar_pessoa(matricula: str, tipo_id: int, descricao: str, db: Session) -> None:
+def _validar_pessoa(matricula: int, tipo_id: int, descricao: str, db: Session) -> None:
     existe = (
         db.query(models.Pessoa)
         .filter(models.Pessoa.matricula == matricula, models.Pessoa.tipo_pessoa_id == tipo_id)
@@ -46,8 +46,8 @@ def _validar_treino(treino_id: int, db: Session) -> None:
 
 @router.get("/", response_model=List[schemas.FichaTreinoResponseSchema])
 def listar_fichas(
-    aluno_matricula: str | None = None,
-    personal_matricula: str | None = None,
+    aluno_matricula: int | None = None,
+    personal_matricula: int | None = None,
     db: Session = Depends(get_db),
 ):
     query = db.query(models.FichaTreino).options(

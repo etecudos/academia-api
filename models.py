@@ -16,7 +16,7 @@ class TipoPessoa(Base):
 class Pessoa(Base):
     __tablename__ = "pessoas"
 
-    matricula = Column(String(30), primary_key=True, index=True)
+    matricula = Column(Integer, primary_key=True, autoincrement=True, index=True)
     nome = Column(String(100), nullable=False, index=True)
     email = Column(String(150), nullable=False, unique=True, index=True)
     telefone = Column(String(11), nullable=False, index=True)
@@ -52,14 +52,14 @@ class MatriculaAluno(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     aluno_matricula = Column(
-        String(30),
+        Integer,
         ForeignKey("pessoas.matricula", ondelete="CASCADE"),
         nullable=False,
         unique=True,
         index=True,
     )
     personal_matricula = Column(
-        String(30),
+        Integer,
         ForeignKey("pessoas.matricula"),
         nullable=False,
         index=True,
@@ -102,13 +102,13 @@ class FichaTreino(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     aluno_matricula = Column(
-        String(30),
+        Integer,
         ForeignKey("pessoas.matricula", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     personal_matricula = Column(
-        String(30),
+        Integer,
         ForeignKey("pessoas.matricula"),
         nullable=False,
         index=True,
